@@ -5,6 +5,11 @@ jspm_packages/
 # Optional npm cache directory
 .npm
 
+# database
+*.db
+*.sqlite
+*.sqlite*
+
 # Optional eslint cache
 .eslintcache
 

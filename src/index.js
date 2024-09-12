@@ -8,7 +8,7 @@ const app = express();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 // Serve static files (including htmx)
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
@@ -62,7 +62,7 @@ app.delete("/todos/:id", async (req, res) => {
   const { id } = req.params;
   try {
     await TodoQueries.deleteTodo(id);
-    res.status(204).send();
+    res.status(200).send('');  // Change this line
   } catch (err) {
     res.status(400).send("Error: " + err.message);
   }

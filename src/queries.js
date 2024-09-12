@@ -1,5 +1,14 @@
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./mydb.sqlite');
+const path = require('path');
+
+const dbLocation = process.env.DATABASE_URL || 'sqlite:./data/mydb.sqlite';
+const dbFile = dbLocation.replace('sqlite:', '');
+
+// Resolve the path relative to the current directory
+const dbPath = path.resolve(process.cwd(), dbFile);
+
+console.log("dbPath", dbPath);
+const db = new sqlite3.Database(dbPath);
 
 const TodoQueries = {
   // Create a new todo item
