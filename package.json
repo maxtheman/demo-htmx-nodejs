@@ -2,10 +2,18 @@
   "name": "demo-htmx-nodejs",
   "version": "1.0.0",
   "description": "demo project for iggy",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
+    "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "max caldwell",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "eslint": "^9.10.0",
+    "express": "^4.21.0",
+    "prettier": "^3.3.3",
+    "sqlite3": "^5.1.7"
+  }
 }

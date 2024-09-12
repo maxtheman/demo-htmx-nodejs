@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo Management</title>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+</head>
+<body>
+    <h1>Todo Management</h1>
+    
+    <h2>Add Todo</h2>
+    <form hx-post="/todos" hx-target="#todoList" hx-swap="beforeend">
+        <input type="text" name="title" placeholder="Title" required>
+        <textarea name="description" placeholder="Description"></textarea>
+        <input type="date" name="dueDate" required>
+        <input type="hidden" name="listId" value="1">
+        <button type="submit">Add Todo</button>
+    </form>
+
+    <h2>Todo List</h2>
+    <div id="todoList" hx-get="/todos" hx-trigger="load">
+        <!-- Todo list will be loaded here -->
+    </div>
+</body>
+</html>

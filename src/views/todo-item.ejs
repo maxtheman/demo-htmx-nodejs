@@ -1,0 +1,12 @@
+<div>
+    <h3><%= todo.title %></h3>
+    <p><%= todo.description %></p>
+    <p>Due: <%= todo.due_date %></p>
+    <p>Status: <%= todo.is_completed ? 'Completed' : 'Pending' %></p>
+    <button hx-put="/todos/<%= todo.id %>" hx-swap="outerHTML" hx-target="closest div">
+        <%= todo.is_completed ? 'Mark as Pending' : 'Mark as Completed' %>
+    </button>
+    <button hx-delete="/todos/<%= todo.id %>" hx-swap="outerHTML" hx-target="closest div">
+        Delete
+    </button>
+</div>
