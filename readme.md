@@ -77,7 +77,6 @@ I did like that there's a package manager built in, and bun:sqlite is nice too.
 ## Prerequisites
 
 - bun: https://bun.sh/
-- dotenvx: https://dotenvx.com/
 
 ## Setup environment variables
 
@@ -154,6 +153,8 @@ docker build -t demo-htmx-nodejs .
 
 I recommend using https://orbstack.dev/download to build or run the container locally on Mac Silicon, if needed.
 
+You can also run the container locally against https with this if you want:
+https://docs.orbstack.dev/features/https
 
 ### Deploying to Fly.io
 
