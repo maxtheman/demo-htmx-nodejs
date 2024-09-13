@@ -10,6 +10,8 @@ jspm_packages/
 *.sqlite
 *.sqlite*
 
+.env.keys
+
 # Optional eslint cache
 .eslintcache
 

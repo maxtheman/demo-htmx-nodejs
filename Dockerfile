@@ -1,28 +1,23 @@
-#!/bin/bash
-set -e
+FROM oven/bun:1
 
-# Set the migrations directory
-MIGRATIONS_DIR="./db/migrations"
+RUN apt-get update && apt-get install -y sqlite3
 
-# Create the data directory if it doesn't exist
-mkdir -p /data
+WORKDIR /app
 
-if [ ! -f /data/mydb.sqlite ]; then
-    echo "Database not found, creating and running migrations..."
-    touch /data/mydb.sqlite
-    chmod 644 /data/mydb.sqlite
-    dbmate --migrations-dir "$MIGRATIONS_DIR" up
-    echo "Database created and migrations applied."
-else
-    echo "Database found, checking for unapplied migrations..."
-    if dbmate --migrations-dir "$MIGRATIONS_DIR" status | grep -q "Pending"; then
-        echo "Unapplied migrations found. Applying..."
-        dbmate --migrations-dir "$MIGRATIONS_DIR" up
-        echo "Migrations completed."
-    else
-        echo "No unapplied migrations found."
-    fi
-fi
+COPY package.json bun.lockb* ./
+RUN bun install
 
-# Execute the command passed to the script
-exec "$@"
+COPY ./src ./src
+RUN mkdir -p ./db
+COPY ./db/migrations ./db/migrations
+COPY ./db/schema.sql ./db/
+COPY src/instrumentation.js ./src/
+COPY .env.production ./
+
+EXPOSE 3000
+
+COPY setupDb.sh /setupDb.sh
+RUN chmod +x /setupDb.sh
+
+ENTRYPOINT ["/setupDb.sh"]
+CMD ["bun", "start"]

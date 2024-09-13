@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Check for "encrypted" in .env files
+check_encrypted() {
+    if ! grep -q "encrypted" "$1"; then
+        echo "Error: 'encrypted' not found in $1"
+        exit 1
+    fi
+}
+
+check_encrypted ".env.local"
+check_encrypted ".env.production"
+
+# Run the linter
+npm run lint
+
+# If the linter fails, prevent the commit
+if [ $? -ne 0 ]; then
+    echo "Linter failed. Please fix the issues before committing."
+    exit 1
+fi
+
+# If we've made it this far, the commit can proceed
+exit 0

@@ -2,17 +2,25 @@
 
 This project demonstrates a simple setup for a web application using Express.js, HTMX, and SQLite.
 
+In spite of the title, I actually ended up using Bun instead of Node, and I think I like it!
+
 Lives at: https://demo-htmx-nodejs.fly.dev/
+- Scales to 0, may take a second to wake up. Requires login.
 
 ## Philosophy
 
 Mental model for picking this or any stack:
-1. Do you have long-running CPU-bound or GPU-bound processes?
+1. Do you have VERY long-running CPU-bound or GPU-bound processes?
    - No? A simple, single lightweight CRUD server works for this.
    - Yes? You probably need both a web server and a heavier-duty worker machine with some kind of queue or serverless process to run your long-running processes.
+   - If you just have things like needing to send an email, node and bun both have great async/multiprocessing libraries to handle this.
+      - Using Bun, you can do Bun.spawn() natively to run that in a separate process. Then, maybe save any failures to the db to retry.
 2. Generally I would recommend Postgres for most database needs.
    - If you don't need RLS (row level security) or other Postgres features, then SQLite is a lightweight, partially file-based database engine that can also work well and so we used it here.
-   - Traditionally, SQLite isn't picked for this but it's become more common and popular. You'll have better support with Postgres, but might get better latency with SQLite, and it would be simpler to administer.
+   - Traditionally, SQLite isn't picked for this but it's become more common and popular. You'll have generally better community support with Postgres and more features, but might get better latency with SQLite, and it would be simpler to administer.
+   - Will SQLite scale? That was my big concern. It seems that the reason is that programs used to not handle concurrent writes, but that's not the case for apps today apparently.
+      - See this article for more info: https://blog.wesleyac.com/posts/consider-sqlite
+      - More technical on the WAL mode for journalling here, which we are using: https://fly.io/blog/sqlite-internals-wal/
 3. You probably don't need an ORM
    - SQL isn't that hard to learn
    - You will very likely end up "ejecting" into SQL at some point using any ORM, increasing complexity.
@@ -29,6 +37,7 @@ Mental model for picking this or any stack:
 5. Consider relying on an external auth provider.
    - This definitely saves you time when integrating with Google Auth, etc. Auth0 is a popular choice
       - https://auth0.com/docs/quickstart/webapp/express/interactive
+      - This was super easy to setup and worked well.
    - If you're in a B2B setting, integrate WorkOS or Auth0 to get SSO for free, practically.
    - Otherwise, use SHA-256 and a secret to store passwords.
 6. You might not need React.
@@ -37,9 +46,14 @@ Mental model for picking this or any stack:
 7. Try tailwind for CSS.
    - Tailwind's utility classes small size and only packages what you need to the client. Easy to eject to plain CSS.
    - Avoids CSS-in-JS, which is trendy but can increase bundle size in a way that hurts performance and is harder to work with due to lack of flexibility when editing, i.e., it's harder to eject from.
-8. Setup proper logging and tracing.
+8. Setup proper logging and tracing, plus encryption of environment variables.
    - Opentelemetry is a good choice for this as it's compatible with many logging and tracing providers.
    - I added Pino for the formatter for http requests: https://github.com/pinojs/pino
+   - Fly has grafana built in so you can see the traces in the dashboard, which is nice.
+   - Dotenvx is a good choice for environment variable encryption so you can pass those around more securely and easily.
+9. Setup CI/CD
+   - This project uses Github Actions for CD. I don't have experience with other systems.
+   - Since there is no testing, there's no CI right now, but it's best practice to add that.
 
 
 ### Bun vs Node
@@ -57,10 +71,31 @@ I did like that there's a package manager built in, and bun:sqlite is nice too.
 - A build system for frontend assets. Started to look into Vite but seemed like overkill at this stage.
 - https://fly.io/docs/litefs/ - for distributing SQLite databases across multiple machines. Again, overkill right now.
 - https://litestream.io/guides/docker/ This would be a good first step for backups, and a stepping stone on the journey to litefs.
+- Testing framework? Didn't bother setting up tests for this.
+- Typescript
 
 ## Prerequisites
 
 - bun: https://bun.sh/
+- dotenvx: https://dotenvx.com/
+
+## Setup environment variables
+
+Delete the current values and public key in .env.local and .env.production and add your own for each key.
+
+Then, run:
+
+```
+dotenvx encrypt -f .env.production
+```
+
+```
+dotenvx encrypt -f .env.local
+```
+
+These .env files are used to store the environment variables for the application.
+
+They ARE supposed to be committed to the repository. Then, they can be used in CI/CD and
 
 ## Getting Started
 
@@ -86,6 +121,10 @@ Follow these steps to set up and run the project:
 4. Start the dev server
    ```
    bun run dev
+   ```
+5. Copy the pre-commit hook to the .git/hooks directory
+   ```
+   bun run prepare
    ```
 
 ## Project Structure
@@ -113,9 +152,7 @@ To build the Docker image, run:
 docker build -t demo-htmx-nodejs .
 ```
 
-I recommend using https://orbstack.dev/download to build or run the container locally on Mac Silicon.
-
-It may be faster to build the image locally and then deploy to fly wiht your image.
+I recommend using https://orbstack.dev/download to build or run the container locally on Mac Silicon, if needed.
 
 
 ### Deploying to Fly.io
@@ -128,6 +165,12 @@ fly launch
 ```
 
 It will yell at you to create a fly volume for the database, follow its instructions.
+
+Set your fly secret environment variables from the .env.keys file.
+
+```
+flyctl secrets set DOTENV_PRIVATE_KEY_PRODUCTION='...'
+```
 
 and to deploy changes:
 
@@ -199,4 +242,5 @@ Then run the migrations manually with
 ```
 bun run db:migrate
 ```
-```
+
+### Reflections

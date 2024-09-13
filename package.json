@@ -4,14 +4,17 @@
   "description": "demo project for iggy",
   "main": "src/index.js",
   "scripts": {
-    "dev": "concurrently \"bun run tailwindcss -i ./src/public/index.css -o ./src/public/output.css --watch\" \"bun --preload ./src/instrumentation.js --watch src/index.js\"",
-    "start": "bun --preload ./src/instrumentation.js src/index.js",
+    "dev": "dotenvx run -f .env.local -- concurrently \"bun run tailwindcss -i ./src/public/index.css -o ./src/public/output.css --watch\" \"bun --preload ./src/instrumentation.js --watch src/index.js\"",
+    "start": "dotenvx run -f .env.production -- bun --preload ./src/instrumentation.js src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "db:migrate": "bun run dbmate up"
+    "db:migrate": "dotenvx run -f .env.production -- bun run dbmate up",
+    "prepare": "cp .hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
+
   },
   "author": "max caldwell",
   "license": "MIT",
   "dependencies": {
+    "@dotenvx/dotenvx": "^1.14.0",
     "@formkit/auto-animate": "^0.8.2",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.50.0",
