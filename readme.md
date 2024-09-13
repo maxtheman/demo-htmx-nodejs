@@ -106,11 +106,11 @@ They ARE supposed to be committed to the repository. Then, they can be used in C
 
 Follow these steps to set up and run the project:
 
-1. Use the correct Node.js version:
+1. ~Use the correct Nodejs version:~ (don't need this with bun!)
    ```
-   nvm use
+   ~~nvm use~~
    ```
-   This will use the Node.js version specified in the `.nvmrc` file.
+   ~~This will use the Node.js version specified in the `.nvmrc` file.~~
 
 2. Install dependencies:
    ```
@@ -187,7 +187,8 @@ fly deploy
 
 ## Technologies Used
 
-- [Express.js](https://expressjs.com/): Web application framework for Node.js
+- [Bun](https://bun.sh/): Fast JavaScript runtime.
+- [Express.js](https://expressjs.com/): Web application framework.
 - [HTMX](https://htmx.org/): Lightweight library for AJAX, CSS Transitions, and WebSockets
 - [SQLite](https://www.sqlite.org/): Lightweight, serverless database engine
 - [EJS](https://ejs.co/): Templating engine for rendering HTML
@@ -195,9 +196,8 @@ fly deploy
 - [autoAnimate](https://auto-animate.formkit.com/): Animation library for animating the htmx changes
 - [Tailwind](https://tailwindcss.com/): CSS library
 - [OpenTelemetry](https://opentelemetry.io/): Open source observability framework
-- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3): SQLite3 bindings for Node.js, way faster than plain sqlite3 package
 
-Database backups are right now handled by Fly.io Volumes - https://fly.io/docs/volumes/overview/
+Database backups are right now handled by Fly.io Volume 5-day snapshots - https://fly.io/docs/volumes/overview/
 
 This isn't recommended for long-term use, a different backup strategy should be used.
 
