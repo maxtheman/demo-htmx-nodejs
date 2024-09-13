@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Set the database URL for dbmate
+export DATABASE_URL="sqlite:///data/mydb.sqlite"
+
 # Set the migrations directory
 MIGRATIONS_DIR="./db/migrations"
 

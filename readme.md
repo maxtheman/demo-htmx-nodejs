@@ -2,6 +2,8 @@
 
 This project demonstrates a simple setup for a web application using Express.js, HTMX, and SQLite.
 
+Lives at: https://demo-htmx-nodejs.fly.dev/
+
 ## Philosophy
 
 Mental model for picking this or any stack:
@@ -27,7 +29,7 @@ Mental model for picking this or any stack:
 5. Consider relying on an external auth provider.
    - This definitely saves you time when integrating with Google Auth, etc. Auth0 is a popular choice
       - https://auth0.com/docs/quickstart/webapp/express/interactive
-   - If you're in a B2B setting, integrate WorkOS to get SSO for free, practically.
+   - If you're in a B2B setting, integrate WorkOS or Auth0 to get SSO for free, practically.
    - Otherwise, use SHA-256 and a secret to store passwords.
 6. You might not need React.
    - Do you have a lot of complex UI interactions? Nested forms, lots of drag-and-drop, multiple users interacting with one page, timelines or workflows that move dynamically? If not — consider avoiding React.
@@ -35,12 +37,30 @@ Mental model for picking this or any stack:
 7. Try tailwind for CSS.
    - Tailwind's utility classes small size and only packages what you need to the client. Easy to eject to plain CSS.
    - Avoids CSS-in-JS, which is trendy but can increase bundle size in a way that hurts performance and is harder to work with due to lack of flexibility when editing, i.e., it's harder to eject from.
+8. Setup proper logging and tracing.
+   - Opentelemetry is a good choice for this as it's compatible with many logging and tracing providers.
+   - I added Pino for the formatter for http requests: https://github.com/pinojs/pino
+
+
+### Bun vs Node
+
+Bun is supposed to be faster alternative to Node.js for running JavaScript.
+
+I originally set this up with NodeJS but then switched to bun, for fun.
+
+I didn't notice a HUGE difference, maybe it was a little faster. But, the app is responding in single ms anyway so there's not much room for improvement.
+
+I did like that there's a package manager built in, and bun:sqlite is nice too.
+
+### Things I didn't look into but might be useful:
+
+- A build system for frontend assets. Started to look into Vite but seemed like overkill at this stage.
+- https://fly.io/docs/litefs/ - for distributing SQLite databases across multiple machines. Again, overkill right now.
+- https://litestream.io/guides/docker/ This would be a good first step for backups, and a stepping stone on the journey to litefs.
 
 ## Prerequisites
 
-- Node.js (version specified in `.nvmrc`)
-- npm (Node Package Manager)
-- nvm (Node Version Manager)
+- bun: https://bun.sh/
 
 ## Getting Started
 
@@ -54,7 +74,7 @@ Follow these steps to set up and run the project:
 
 2. Install dependencies:
    ```
-   npm install
+   bun install
    ```
    This will install all the necessary packages defined in `package.json`.
 3. Add the database url to .env and run the migrations
@@ -63,9 +83,9 @@ Follow these steps to set up and run the project:
    echo "DATABASE_URL=mydb.sqlite" >> .env
    dbmate up
    ```
-4. Start the server
+4. Start the dev server
    ```
-   npm start
+   bun run dev
    ```
 
 ## Project Structure
@@ -90,10 +110,13 @@ dbmate -d mydb.sqlite new
 
 To build the Docker image, run:
 ```
-docker build -t iggy-demo .
+docker build -t demo-htmx-nodejs .
 ```
 
 I recommend using https://orbstack.dev/download to build or run the container locally on Mac Silicon.
+
+It may be faster to build the image locally and then deploy to fly wiht your image.
+
 
 ### Deploying to Fly.io
 
@@ -104,6 +127,13 @@ fly auth login
 fly launch
 ```
 
+It will yell at you to create a fly volume for the database, follow its instructions.
+
+and to deploy changes:
+
+```
+fly deploy
+```
 
 ## Technologies Used
 
@@ -112,12 +142,61 @@ fly launch
 - [SQLite](https://www.sqlite.org/): Lightweight, serverless database engine
 - [EJS](https://ejs.co/): Templating engine for rendering HTML
 - [Dbmate](https://github.com/amacneil/dbmate): Database migration tool
-- [autoAnimate](https://auto-animate.formkit.com/): Animation library
+- [autoAnimate](https://auto-animate.formkit.com/): Animation library for animating the htmx changes
 - [Tailwind](https://tailwindcss.com/): CSS library
+- [OpenTelemetry](https://opentelemetry.io/): Open source observability framework
+- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3): SQLite3 bindings for Node.js, way faster than plain sqlite3 package
+
+Database backups are right now handled by Fly.io Volumes - https://fly.io/docs/volumes/overview/
+
+This isn't recommended for long-term use, a different backup strategy should be used.
 
 ## Development
 
 To start the server, run:
 ```
-npm start
+bun run dev
+```
+
+### Making changes
+
+To make changes to the database, first make a migration:
+```
+dbmate new {name}
+```
+
+Then make the changes to the schema in the generated file.
+
+Then,  run the migrations:
+```
+bun run db:migrate
+```
+
+They should be automatically applied upon deployment.
+
+Other stuff:
+- index.js is the entrypoint for the application. It's a standard Express.js app. Edit business logic there.
+- src/instrumentation.js is used to instrument the app with opentelemetry. You probably don't need to change this.
+- src/queries.js is a convenience wrapper around the database for interacting with the database.
+- views/* contains the html templates. These are rendered with EJS on the server. HTMX is used to update the DOM, check the hx-* attributes.
+- public/* contains the static assets.
+
+## Devops
+
+If machines get in a bad state on fly.io, scale down to 0 and then back up.
+
+```
+fly scale count 0
+fly scale count 1
+```
+
+Sometimes I wasn't able to get the database to migrate in the dockerfile. If that's the case go ahead and ssh in with
+```
+fly ssh console
+```
+
+Then run the migrations manually with
+```
+bun run db:migrate
+```
 ```

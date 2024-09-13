@@ -1,85 +1,82 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+import { Database } from 'bun:sqlite';
+import path from 'path';
 
+import { logger } from "./instrumentation.js";
 const dbLocation = process.env.DATABASE_URL || 'sqlite:./data/mydb.sqlite';
 const dbFile = dbLocation.replace('sqlite:', '');
 
 // Resolve the path relative to the current directory
 const dbPath = path.resolve(process.cwd(), dbFile);
+const db = new Database(dbPath);
 
-console.log("dbPath", dbPath);
-const db = new sqlite3.Database(dbPath);
+logger.info(`Database path: ${dbPath}`);
+
+db.run('PRAGMA journal_mode = WAL');
 
 const TodoQueries = {
   // Create a new todo item
-  createTodo: (listId, title, description, dueDate) => {
-    return new Promise((resolve, reject) => {
-      const query = `INSERT INTO todo_items (list_id, title, description, due_date) 
-                     VALUES (?, ?, ?, ?)`;
-      db.run(query, [listId, title, description, dueDate], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({ id: this.lastID });
-        }
-      });
-    });
+  createTodo: (listId, title, description, dueDate, userId) => {
+    if (!userId) {
+      logger.error('User ID is required to create a todo item');
+      return { error: 'User ID is required' };
+    }
+    const query = `INSERT INTO todo_items (list_id, title, description, due_date, user_id) 
+                   VALUES (?, ?, ?, ?, ?)`;
+    const stmt = db.prepare(query);
+    logger.info(`Statement: ${stmt}`);
+    const info = stmt.run(parseInt(listId, 10), title, description, dueDate, userId);
+    return { id: info.lastInsertRowid };
   },
 
   // Read all todo items
-  getAllTodos: () => {
-    return new Promise((resolve, reject) => {
-      db.all("SELECT * FROM todo_items", [], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
+  getAllTodos: (userId) => {
+    if (!userId) {
+      logger.error('User ID is required to get all todo items');
+      return { error: 'User ID is required' };
+    }
+    const statement = db.prepare('SELECT * FROM todo_items WHERE user_id = ?');
+    logger.info(`Statement: ${statement}`);
+    return statement.all(userId);
   },
 
   // Read a single todo item by id
-  getTodoById: (id) => {
-    return new Promise((resolve, reject) => {
-      db.get("SELECT * FROM todo_items WHERE id = ?", [id], (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
-        }
-      });
-    });
+  getTodoById: (id, userId) => {
+      if (!userId) {
+      logger.error('User ID is required to get a todo item by id');
+      return { error: 'User ID is required' };
+    }
+    const statement = db.prepare('SELECT * FROM todo_items WHERE id = ? AND user_id = ?');
+    logger.info(`Statement: ${statement}`);
+    return statement.get(id, userId);
   },
 
   // Update a todo item
-  updateTodo: (id, title, description, isCompleted, dueDate) => {
-    return new Promise((resolve, reject) => {
-      const query = `UPDATE todo_items 
-                     SET title = ?, description = ?, is_completed = ?, due_date = ? 
-                     WHERE id = ?`;
-      db.run(query, [title, description, isCompleted, dueDate, id], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({ changes: this.changes });
-        }
-      });
-    });
+  updateTodo: (id, title, description, isCompleted, dueDate, userId) => {
+    if (!userId) {
+      logger.error('User ID is required to update a todo item');
+      return { error: 'User ID is required' };
+    }
+    const query = `UPDATE todo_items 
+                   SET title = ?, description = ?, is_completed = ?, due_date = ? 
+                   WHERE id = ? AND user_id = ?`;
+    const isCompletedValue = isCompleted ? 1 : 0;
+    const stmt = db.prepare(query);
+    logger.info(`Statement: ${stmt}`);
+    const info = stmt.run(title, description, isCompletedValue, dueDate, id, userId);
+    return { changes: info.changes };
   },
 
   // Delete a todo item
-  deleteTodo: (id) => {
-    return new Promise((resolve, reject) => {
-      db.run("DELETE FROM todo_items WHERE id = ?", [id], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({ changes: this.changes });
-        }
-      });
-    });
+  deleteTodo: (id, userId) => {
+    if (!userId) {
+      logger.error('User ID is required to delete a todo item');
+      return { error: 'User ID is required' };
+    }
+    const stmt = db.prepare("DELETE FROM todo_items WHERE id = ? AND user_id = ?");
+    logger.info(`Statement: ${stmt}`);
+    const info = stmt.run(id, userId);
+    return { changes: info.changes };
   }
 };
 
-module.exports = TodoQueries;
+export default TodoQueries;
