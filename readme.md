@@ -7,6 +7,12 @@ In spite of the title, I actually ended up using Bun instead of Node, and I thin
 Lives at: https://demo-htmx-nodejs.fly.dev/
 - Scales to 0, may take a second to wake up. Requires login.
 
+
+## Demo
+
+![Demo GIF](demo-bun.gif)
+
+
 ## Philosophy
 
 Mental model for picking this or any stack:
