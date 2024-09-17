@@ -15,7 +15,7 @@ db.run('PRAGMA journal_mode = WAL');
 
 const TodoQueries = {
   // Create a new todo item
-  createTodo: (listId, title, description, dueDate, userId) => {
+  async createTodo(listId, title, description, dueDate, userId) {
     if (!userId) {
       logger.error('User ID is required to create a todo item');
       return { error: 'User ID is required' };
@@ -29,7 +29,7 @@ const TodoQueries = {
   },
 
   // Read all todo items
-  getAllTodos: (userId) => {
+  async getAllTodos(userId) {
     if (!userId) {
       logger.error('User ID is required to get all todo items');
       return { error: 'User ID is required' };
@@ -40,8 +40,8 @@ const TodoQueries = {
   },
 
   // Read a single todo item by id
-  getTodoById: (id, userId) => {
-      if (!userId) {
+  async getTodoById(id, userId) {
+    if (!userId) {
       logger.error('User ID is required to get a todo item by id');
       return { error: 'User ID is required' };
     }
@@ -51,7 +51,7 @@ const TodoQueries = {
   },
 
   // Update a todo item
-  updateTodo: (id, title, description, isCompleted, dueDate, userId) => {
+  async updateTodo(id, title, description, isCompleted, dueDate, userId) {
     if (!userId) {
       logger.error('User ID is required to update a todo item');
       return { error: 'User ID is required' };
@@ -67,7 +67,7 @@ const TodoQueries = {
   },
 
   // Delete a todo item
-  deleteTodo: (id, userId) => {
+  async deleteTodo(id, userId) {
     if (!userId) {
       logger.error('User ID is required to delete a todo item');
       return { error: 'User ID is required' };
