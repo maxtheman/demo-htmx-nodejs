@@ -6,11 +6,11 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0" />
   <title>Todo Management</title>
-  <link href="/output.css"
+  <link href="/public/output.css"
         rel="stylesheet" />
-  <script src="/htmx.min.js"></script>
+  <script src="/public/htmx.min.js"></script>
   <script type="module">
-    import autoAnimate from "./auto-animate.min.js";
+    import autoAnimate from "/public/auto-animate.min.js";
     document.addEventListener("DOMContentLoaded", () => {
       const todoList = document.querySelector("#todoList");
       autoAnimate(todoList);

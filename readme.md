@@ -1,6 +1,6 @@
-# Demo Express + HTMX + SQLite Stack
+# Demo Hono + HTMX + SQLite Stack
 
-This project demonstrates a simple setup for a web application using Express.js, HTMX, and SQLite.
+This project demonstrates a simple setup for a web application using Hono.js, HTMX, and SQLite.
 
 In spite of the title, I actually ended up using Bun instead of Node, and I think I like it!
 
@@ -42,7 +42,7 @@ Mental model for picking this or any stack:
    - If no, then use a local volume which can either persist or not. For this project, we're using a SQLite database in a Fly Data Volume that persists across deployments.
 5. Consider relying on an external auth provider.
    - This definitely saves you time when integrating with Google Auth, etc. Auth0 is a popular choice
-      - https://auth0.com/docs/quickstart/webapp/express/interactive
+      - https://auth0.com/docs/quickstart/webapp/express/interactive (this is for Express, not Hono)
       - This was super easy to setup and worked well.
    - If you're in a B2B setting, integrate WorkOS or Auth0 to get SSO for free, practically.
    - Otherwise, use SHA-256 and a secret to store passwords.
@@ -72,12 +72,28 @@ I didn't notice a HUGE difference, maybe it was a little faster. But, the app is
 
 I did like that there's a package manager built in, and bun:sqlite is nice too.
 
+Finally, it's really nice that Bun comes with a built in command line tool for running jobs. Great for debugging and also I use it to schedule the database optimization cron job.
+
+### Even faster rendering
+
+I switched from EJS to Eta for templating.
+
+I'm not sure if I saw a difference, but I don't think that templating is the bottleneck at this point anyway. More of a "might as well" optimization.
+
+[Benchmark](https://rawcdn.githack.com/eta-dev/eta/main/browser-tests/benchmark.html)
+
+Then, for the same reason of hypothetical performance improvement, I switched from Express to Hono JS.
+
+This added a significant amount of complexity on auth and observability since Auth0 doesn't have a pre-built library for Hono, and the library also doesn't have a pre-built open telemetry integration.
+
+However, this NOTICEDLY decreased the response times (perhaps in conjunction with the switch to Eta), reducing the average ms time by ~50%.
+
 ### Things I didn't look into but might be useful:
 
 - A build system for frontend assets. Started to look into Vite but seemed like overkill at this stage.
 - https://fly.io/docs/litefs/ - for distributing SQLite databases across multiple machines. Again, overkill right now.
 - https://litestream.io/guides/docker/ This would be a good first step for backups, and a stepping stone on the journey to litefs.
-- Testing framework? Didn't bother setting up tests for this.
+- Testing framework? Didn't bother setting up tests for this. Bun comes with bun:test, probably use that.
 - Typescript
 
 ## Prerequisites
@@ -134,7 +150,7 @@ Follow these steps to set up and run the project:
 
 ## Project Structure
 
-- `index.js`: Main entry point for the Express application
+- `index.js`: Main entry point for the application
 - `package.json`: Defines project dependencies and scripts
 - `Dockerfile`: Contains instructions for building a Docker image of the application
 - `db/schema.sql`: Contains the schema for the database
@@ -188,14 +204,17 @@ fly deploy
 ## Technologies Used
 
 - [Bun](https://bun.sh/): Fast JavaScript runtime.
-- [Express.js](https://expressjs.com/): Web application framework.
+- ~[Express.js](https://expressjs.com/): Web application framework.~ (replaced with Hono)
 - [HTMX](https://htmx.org/): Lightweight library for AJAX, CSS Transitions, and WebSockets
 - [SQLite](https://www.sqlite.org/): Lightweight, serverless database engine
-- [EJS](https://ejs.co/): Templating engine for rendering HTML
+- ~[EJS](https://ejs.co/): Templating engine for rendering HTML~
+- [Eta](https://eta.js.org/): Templating engine for rendering HTML, faster than EJS
 - [Dbmate](https://github.com/amacneil/dbmate): Database migration tool
 - [autoAnimate](https://auto-animate.formkit.com/): Animation library for animating the htmx changes
 - [Tailwind](https://tailwindcss.com/): CSS library
 - [OpenTelemetry](https://opentelemetry.io/): Open source observability framework
+- [Hono](https://hono.dev/): Fast and flexible web framework
+- [Magic Regex](https://regexp.dev/guide/usage): Magic Regex for matching paths. Typesafe, compiled at build time.
 
 Database backups are right now handled by Fly.io Volume 5-day snapshots - https://fly.io/docs/volumes/overview/
 

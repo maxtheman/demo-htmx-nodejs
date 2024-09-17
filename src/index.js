@@ -1,147 +1,146 @@
-import express from "express";
+import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
 import path from "path";
-import TodoQueries from "./queries.js";
-import { logger } from "./instrumentation.js";
-import { auth } from "express-openid-connect";
 import { Eta } from "eta";
+import TodoQueries from "./queries";
+import { requiresAuth } from "./middleware/auth";
+import authRoutes from "./routes/auth";
+import { relative, dirname } from 'path';
+import { fileURLToPath } from "url";
+import { createRegExp, exactly, char, oneOrMore } from 'magic-regexp';
+import { logger, opentelemetryMiddleware } from "./instrumentation";
 
-const app = express();
 
-app.set("views", path.join(__dirname, "views"));
+const publicPathRegex = createRegExp(
+  exactly('/public')
+    .at.lineStart()
+    .and(oneOrMore(char))
+)
+
+const app = new Hono();
+app.use("*", opentelemetryMiddleware(logger));
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// https://github.com/honojs/hono/issues/2200#issuecomment-2187240226
+const relativePathToScript = relative(process.cwd(), __dirname);
+
 
 const views = new Eta({
-  // Views directory path, using ETA renderer
   views: path.join(__dirname, "views"),
   cache: true,
 });
-// Serve static files (including htmx)
-app.use(express.static(path.join(__dirname, "public")));
-app.use(express.urlencoded({ extended: true }));
 
-// Auth0 configuration
-const config = {
-  authRequired: false,
-  auth0Logout: true,
-  baseURL: process.env.BASE_URL,
-  clientID: process.env.AUTH0_CLIENT_ID,
-  issuerBaseURL: process.env.AUTH0_DOMAIN,
-  secret: process.env.AUTH0_CLIENT_SECRET,
-};
-
-// Auth router attaches /login, /logout, and /callback routes to the baseURL
-app.use(auth(config));
-const requiresAuth = (req, res, next) => {
-  // check if the user is authenticated, the middleware handles this with cookies.
-  if (req.oidc.isAuthenticated()) {
+app.use('/public/*', serveStatic({
+  root: relativePathToScript,
+  onNotFound: (path, c) => {
+    console.log(`${path} is not found, you access ${c.req.path}`)
+  }
+}));
+app.use("*", async (c, next) => {
+  if (publicPathRegex.test(c.req.url)) {
     return next();
   }
-  res.redirect("/login");
-};
-
-// utils, in future break out into a separate package
-const render200 = (res, template, data) => {
-  const view = views.render(template, data);
-  return res.status(200).send(view);
-};
-
-const handleAsyncError = async (fn) => {
-  // return [result, error]. If error is not null, it will be an error. If result is not null, it will be the result.
-  let result = null;
-  let error = null;
-  try {
-    result = await fn();
-    error = null;
-    return [result, null];
-  } catch (err) {
-    logger.error(err);
-    error = err;
-    return [null, err];
+  const contentType = c.req.header("Content-Type") || "";
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    const body = await c.req.parseBody();
+    c.req.body = body;
   }
-};
+  await next();
+});
+// const handleAsyncError = async (fn) => {
+//   // return [result, error]. If error is not null, it will be an error. If result is not null, it will be the result.
+//   let result = null;
+//   let error = null;
+//   try {
+//     result = await fn();
+//     error = null;
+//     return [result, null];
+//   } catch (err) {
+//     logger.error(err);
+//     error = err;
+//     return [null, err];
+//   }
+// };
 
-app.get("/", requiresAuth, (req, res) => {
+// Mount authentication routes
+app.route("/auth", authRoutes);
+
+// Protected Routes
+app.get("/", requiresAuth, async (c) => {
   logger.info({
-    isAuthenticated: req.oidc.isAuthenticated(),
-    user: req.oidc.user.sub,
+    user: c.get("user")?.sub,
   });
-  return render200(res, "index", { isAuthenticated: req.oidc.isAuthenticated() });
+  const html = views.render("index", { isAuthenticated: true });
+  return c.html(html, 200);
 });
 
-app.get("/todos", requiresAuth, async (req, res) => {
-  const [todos, err] = await handleAsyncError(() =>
-    TodoQueries.getAllTodos(req.oidc.user.sub)
-  );
-  if (err) {
-    return res.status(400).send("Error: " + err.message);
+app.get("/todos", requiresAuth, async (c) => {
+  try {
+    const todos = await TodoQueries.getAllTodos(c.get("user")?.sub);
+    const html = views.render("todos", { todos });
+    return c.html(html, 200);
+  } catch (err) {
+    return c.text("Error: " + err.message, 400);
   }
-  return render200(res, "todos", { todos: todos });
 });
 
-app.post("/todos", requiresAuth, async (req, res) => {
-  const { listId, title, description, dueDate } = req.body;
-  const [result, err] = await handleAsyncError(() =>
-    TodoQueries.createTodo(
+app.post("/todos", requiresAuth, async (c) => {
+  const { listId, title, description, dueDate } = c.req.body;
+  try {
+    const result = await TodoQueries.createTodo(
       listId,
       title,
       description,
       dueDate,
-      req.oidc.user.sub
-    )
-  );
-  if (err) {
-    return res.status(400).send("Error: " + err.message);
+      c.get("user")?.sub
+    );
+    const newTodo = await TodoQueries.getTodoById(
+      result.id,
+      c.get("user")?.sub
+    );
+    const html = views.render("todo-item", { todo: newTodo });
+    return c.html(html, 200);
+  } catch (err) {
+    return c.text("Error: " + err.message, 400);
   }
-  const [newTodo, getError] = await handleAsyncError(() =>
-    TodoQueries.getTodoById(result.id, req.oidc.user.sub)
-  );
-  if (getError) {
-    logger.error(getError);
-    return res.status(400).send("Error: " + getError.message);
-  }
-  render200(res, "todo-item", { todo: newTodo });
 });
 
-app.put("/todos/:id", requiresAuth, async (req, res) => {
-  const { id } = req.params;
-  const [todo, err] = await handleAsyncError(() =>
-    TodoQueries.getTodoById(id, req.oidc.user.sub)
-  );
-  if (getError) {
-    return res.status(400).send("Error: " + getError.message);
-  }
-  const [, updateErr] = await handleAsyncError(() =>
-    TodoQueries.updateTodo(
+app.put("/todos/:id", requiresAuth, async (c) => {
+  const { id } = c.req.param();
+  try {
+    const todo = await TodoQueries.getTodoById(id, c.get("user")?.sub);
+    const updatedTodo = await TodoQueries.updateTodo(
       id,
       todo.title,
       todo.description,
       !todo.is_completed,
       todo.due_date,
-      req.oidc.user.sub
-    )
-  );
-  if (updateErr) {
-    return res.status(400).send("Error: " + updateErr.message);
+      c.get("user")?.sub
+    );
+    const refreshedTodo = await TodoQueries.getTodoById(id, c.get("user")?.sub);
+    const html = views.render("todo-item", { todo: refreshedTodo });
+    return c.html(html, 200);
+  } catch (err) {
+    return c.text("Error: " + err.message, 400);
   }
-  const [refreshedTodo, getError] = await handleAsyncError(() =>
-    TodoQueries.getTodoById(id, req.oidc.user.sub)
-  );
-  if (getError) {
-    return res.status(400).send("Error: " + getError.message);
-  }
-  render200(res, "todo-item", { todo: refreshedTodo });
 });
 
-app.delete("/todos/:id", requiresAuth, async (req, res) => {
-  const { id } = req.params;
-  const [result, err] = await handleAsyncError(() =>
-    TodoQueries.deleteTodo(id, req.oidc.user.sub)
-  );
-  if (err) {
-    return res.status(400).send("Error: " + err.message);
+app.delete("/todos/:id", requiresAuth, async (c) => {
+  const { id } = c.req.param();
+  try {
+    await TodoQueries.deleteTodo(id, c.get("user")?.sub);
+    return c.text("", 200);
+  } catch (err) {
+    return c.text("Error: " + err.message, 400);
   }
-  res.status(200).send("");
 });
 
-app.listen(3000, () => {
-  logger.info("Server running on port 3000");
-});
+// Starting the server
+app.fire();
+
+export default {
+  port: 3000,
+  fetch: app.fetch,
+};

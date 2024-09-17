@@ -8,6 +8,7 @@ import {
   ConsoleMetricExporter,
 } from "@opentelemetry/sdk-metrics";
 import pino from "pino";
+import { context, propagation, SpanKind, SpanStatusCode, trace } from "@opentelemetry/api";
 
 // Create a Pino logger
 export const logger = pino({
@@ -85,3 +86,50 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+
+// Custom OpenTelemetry Middleware for Hono
+export const opentelemetryMiddleware =
+  (logger) =>
+  async (ctx, next) => {
+    const tracer = trace.getTracer("hono-tracer");
+    const span = tracer.startSpan("HTTP " + ctx.req.method, {
+      kind: SpanKind.SERVER,
+      attributes: {
+        "http.method": ctx.req.method,
+        "http.url": ctx.req.url,
+      },
+    });
+
+    return context.with(trace.setSpan(context.active(), span), async () => {
+      const start = performance.now();
+      try {
+        await next();
+        const duration = performance.now() - start;
+        span.setAttribute("http.status_code", ctx.res.status);
+        span.setAttribute("http.duration_ms", duration);
+        span.setStatus({ code: SpanStatusCode.OK });
+        logger.info({
+          method: ctx.req.method,
+          url: ctx.req.url,
+          status: ctx.res.status,
+          duration_ms: duration.toFixed(3),
+        });
+      } catch (error) {
+        const duration = performance.now() - start;
+        span.recordException(error);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: error instanceof Error ? error.message : "unknown error",
+        });
+        logger.error({
+          method: ctx.req.method,
+          url: ctx.req.url,
+          error: error instanceof Error ? error.message : "unknown error",
+          duration_ms: duration.toFixed(3),
+        });
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
+  };

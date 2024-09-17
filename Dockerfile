@@ -1,10 +1,14 @@
 FROM oven/bun:1
 
-RUN apt-get update && apt-get install -y sqlite3
+RUN apt-get update && apt-get install -y sqlite3 jq
 
 WORKDIR /app
 
 COPY package.json bun.lockb* ./
+
+# Remove or override the prepare script before installing
+RUN jq 'del(.scripts.prepare)' package.json > temp.json && mv temp.json package.json
+
 RUN bun install
 
 COPY ./src ./src
