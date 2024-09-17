@@ -60,7 +60,20 @@ Mental model for picking this or any stack:
 9. Setup CI/CD
    - This project uses Github Actions for CD. I don't have experience with other systems.
    - Since there is no testing, there's no CI right now, but it's best practice to add that.
+10. Go fast.
+   - Pick technologies that will run at low-latency and reduced memory requirements.
+   - Use proper database indexing and best-practices to optimize datareturn speed.
 
+
+### Things I didn't look into but might be useful:
+
+- A build system for frontend assets. Started to look into Vite but seemed like overkill at this stage.
+- https://fly.io/docs/litefs/ - for distributing SQLite databases across multiple machines. Again, overkill right now.
+- https://litestream.io/guides/docker/ This would be a good first step for backups, and a stepping stone on the journey to litefs.
+- Testing framework? Didn't bother setting up tests for this. Bun comes with bun:test, probably use that.
+- Typescript
+
+## Going faster
 
 ### Bun vs Node
 
@@ -86,37 +99,13 @@ Then, for the same reason of hypothetical performance improvement, I switched fr
 
 This added a significant amount of complexity on auth and observability since Auth0 doesn't have a pre-built library for Hono, and the library also doesn't have a pre-built open telemetry integration.
 
-However, this NOTICEDLY decreased the response times (perhaps in conjunction with the switch to Eta), reducing the average ms time by ~50%.
+However, this NOTICEDLY decreased the response times (perhaps in conjunction with the switch to Eta), reducing the average ms time by ~70%.
 
-### Things I didn't look into but might be useful:
-
-- A build system for frontend assets. Started to look into Vite but seemed like overkill at this stage.
-- https://fly.io/docs/litefs/ - for distributing SQLite databases across multiple machines. Again, overkill right now.
-- https://litestream.io/guides/docker/ This would be a good first step for backups, and a stepping stone on the journey to litefs.
-- Testing framework? Didn't bother setting up tests for this. Bun comes with bun:test, probably use that.
-- Typescript
+This was the single biggest decrease in response time I could get, going from an average response time of 15ms to 5ms with a p99 of 24.5ms in both cases.
 
 ## Prerequisites
 
 - bun: https://bun.sh/
-
-## Setup environment variables
-
-Delete the current values and public key in .env.local and .env.production and add your own for each key.
-
-Then, run:
-
-```
-dotenvx encrypt -f .env.production
-```
-
-```
-dotenvx encrypt -f .env.local
-```
-
-These .env files are used to store the environment variables for the application.
-
-They ARE supposed to be committed to the repository. Then, they can be used in CI/CD and
 
 ## Getting Started
 
@@ -134,9 +123,9 @@ Follow these steps to set up and run the project:
    ```
    This will install all the necessary packages defined in `package.json`.
 3. Add the database url to .env and run the migrations
+   See `Setup environment variables` below for the database url format and further instructions.
    ```
-   touch .env
-   echo "DATABASE_URL=mydb.sqlite" >> .env
+   echo "DATABASE_URL=mydb.sqlite" >> .env.*
    dbmate up
    ```
 4. Start the dev server
@@ -147,6 +136,26 @@ Follow these steps to set up and run the project:
    ```
    bun run prepare
    ```
+
+## Setup environment variables
+
+After running `bun install`, run this to setup the private key for the environment variables:
+
+Delete the current values and public key in .env.local and .env.production and add your own for each key.
+
+Then, run:
+
+```
+dotenvx encrypt -f .env.production
+```
+
+```
+dotenvx encrypt -f .env.local
+```
+
+These .env files are used to store the environment variables for the application.
+
+They ARE supposed to be committed to the repository. Then, they can be used in CI/CD.
 
 ## Project Structure
 
