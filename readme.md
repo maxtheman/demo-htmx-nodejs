@@ -60,9 +60,16 @@ Mental model for picking this or any stack:
 9. Setup CI/CD
    - This project uses Github Actions for CD. I don't have experience with other systems.
    - Since there is no testing, there's no CI right now, but it's best practice to add that.
-10. Go fast.
+10. Go fast
    - Pick technologies that will run at low-latency and reduced memory requirements.
    - Use proper database indexing and best-practices to optimize datareturn speed.
+   - With this stack and well-optimized queries, the application is responding in single ms.
+   - This setup optimizes memory and response in part by compiling the JS to a single file and running that in Bun, then because it's all compiled we can use a small docker image like alpine.
+11. Handle errors as values
+   - This is a good idea from Rust and other more functional languages.
+   - It forces you to handle all possible errors and makes them more obvious.
+   - In JS, this often means wrapping the function in try/catch and returning the error in a helper as a result type.
+   - Then, in the imperitive shell of the function, you can just do a simple if (result[1]) { return result[1] } to return the error.
 
 
 ### Things I didn't look into but might be useful:
@@ -207,7 +214,11 @@ flyctl secrets set DOTENV_PRIVATE_KEY_PRODUCTION='...'
 and to deploy changes:
 
 ```
-fly deploy
+bun build-linux && fly deploy
+```
+or just run
+```
+bun run deploy
 ```
 
 ## Technologies Used

@@ -10,16 +10,24 @@ import {
 import pino from "pino";
 import { context, propagation, SpanKind, SpanStatusCode, trace } from "@opentelemetry/api";
 
-// Create a Pino logger
-export const logger = pino({
-  level: "info",
-  transport: {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-    },
-  },
-});
+const isProduction = process.env.NODE_ENV === 'production';
+
+export const logger = pino(
+    isProduction
+      ? { level: 'info' }
+      : {
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              translateTime: 'SYS:standard',
+              ignore: 'pid,hostname',
+            },
+          },
+          level: 'debug',
+        }
+  );
+
 
 class PinoSpanExporter {
   export(spans, resultCallback) {

@@ -9,9 +9,9 @@ import { $ } from "bun";
 
 // Resolve the path relative to the current directory
 const dbPath = path.resolve(process.cwd(), dbFile);
-const db = new Database(dbPath);
-
+console.log(`Database path: ${dbPath}`);
 logger.info(`Database path: ${dbPath}`);
+const db = new Database(dbPath);
 
 db.run("PRAGMA journal_mode = WAL");
 // https://sqlite.org/pragma.html#pragma_synchronous

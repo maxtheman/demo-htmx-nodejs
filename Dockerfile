@@ -1,27 +1,31 @@
-FROM oven/bun:1
+FROM debian:bullseye-slim
+   
+RUN apt-get update && apt-get install -y \
+    sqlite3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y sqlite3 jq
+# Download and install dbmate
+RUN curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64 && \
+    chmod +x /usr/local/bin/dbmate
 
 WORKDIR /app
 
-COPY package.json bun.lockb* ./
+COPY ./dist/z ./
+RUN chmod +x ./z
 
-# Remove or override the prepare script before installing
-RUN jq 'del(.scripts.prepare)' package.json > temp.json && mv temp.json package.json
-
-RUN bun install
-
-COPY ./src ./src
-RUN mkdir -p ./db
 COPY ./db/migrations ./db/migrations
 COPY ./db/schema.sql ./db/
+
+COPY src/views ./src/views
+COPY src/public ./src/public
 COPY src/instrumentation.js ./src/
 COPY .env.production ./
 
 EXPOSE 3000
 
-COPY setupDb.sh /setupDb.sh
-RUN chmod +x /setupDb.sh
+COPY setupDb.sh ./
+RUN chmod +x ./setupDb.sh
 
-ENTRYPOINT ["/setupDb.sh"]
-CMD ["bun", "start"]
+ENTRYPOINT ["./setupDb.sh"]
+CMD ["./z"]
