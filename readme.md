@@ -79,6 +79,7 @@ Mental model for picking this or any stack:
 - https://litestream.io/guides/docker/ This would be a good first step for backups, and a stepping stone on the journey to litefs.
 - Testing framework? Didn't bother setting up tests for this. Bun comes with bun:test, probably use that.
 - Typescript
+- Caching implementation -- didn't get to this yet
 
 ## Going faster
 

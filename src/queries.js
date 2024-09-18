@@ -21,8 +21,8 @@ db.run("PRAGMA journal_mode = WAL");
 // You can also try OFF which is faster but less safe.
 db.run("PRAGMA synchronous = NORMAL");
 // https://www.sqlite.org/pragma.html#pragma_optimize
-// Run PRAGMA OPTIMIZE every 6 hours using cron
-if (process.env.NODE_ENV === "production") {
+// Run PRAGMA OPTIMIZE every 6 hours using cron - set to disabled for now, rethinking.
+if (process.env.NODE_ENV === "production" && false) {
   const checkCronJob = $`crontab -l | grep -q "PRAGMA optimize"`;
   checkCronJob.then(() => {
     logger.info("Cron job for database optimization already exists");

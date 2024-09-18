@@ -10,6 +10,8 @@ MIGRATIONS_DIR="./db/migrations"
 # Create the data directory if it doesn't exist
 mkdir -p /data
 
+# Could probably move all of this into bun in the future
+
 if [ ! -f /data/mydb.sqlite ]; then
     echo "Database not found, creating and running migrations..."
     touch /data/mydb.sqlite

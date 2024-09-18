@@ -17,9 +17,10 @@ RUN chmod +x ./z
 COPY ./db/migrations ./db/migrations
 COPY ./db/schema.sql ./db/
 
-COPY src/views ./src/views
+COPY dist/views ./src/views
 COPY src/public ./src/public
-COPY src/instrumentation.js ./src/
+COPY dist/public/output.min.css ./src/public/output.min.css
+COPY src/instrumentation.js ./
 COPY .env.production ./
 
 EXPOSE 3000

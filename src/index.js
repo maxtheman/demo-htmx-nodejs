@@ -18,7 +18,10 @@ app.get("/", requiresAuth, async (c) => {
   logger.info({
     user: c.get("user")?.sub,
   });
-  const html = views.render("index", { isAuthenticated: true });
+  const html = views.render("index", {
+    isAuthenticated: true,
+    isProduction: process.env.NODE_ENV === "production",
+  });
   return c.html(html, 200);
 });
 

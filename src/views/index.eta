@@ -3,13 +3,17 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Todo Management</title>
-  <link href="/public/output.css"
-        rel="stylesheet" />
-  <script src="/public/htmx.min.js"></script>
-  <script type="module">
+  <% if (it.isProduction) { %>
+    <link href="/public/output.min.css" rel="stylesheet" />
+    <script src="/public/htmx.min.js"></script>
+    <script src="/public/auto-animate.min.js"></script>
+  <% } else { %>
+    <script src="/public/htmx.min.js"></script>
+    <link href="/public/output.min.css" rel="stylesheet" />
+  <% } %>
+    <script type="module">
     import autoAnimate from "/public/auto-animate.min.js";
     document.addEventListener("DOMContentLoaded", () => {
       const todoList = document.querySelector("#todoList");
