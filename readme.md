@@ -21,10 +21,10 @@ Mental model for picking this or any stack:
    - Yes? You probably need both a web server and a heavier-duty worker machine with some kind of queue or serverless process to run your long-running processes.
    - If you just have things like needing to send an email, node and bun both have great async/multiprocessing libraries to handle this.
       - Using Bun, you can do Bun.spawn() natively to run that in a separate process. Then, maybe save any failures to the db to retry.
-2. Generally I would recommend Postgres for most database needs.
-   - If you don't need RLS (row level security) or other Postgres features, then SQLite is a lightweight, partially file-based database engine that can also work well and so we used it here.
+2. Generally I would recommend Postgres or Sqlite for most database needs.
+   - If you don't need RLS (row level security) or other Postgres features, then SQLite is a lightweight, partially file-based database engine that can also work well and so I used it here.
    - Traditionally, SQLite isn't picked for this but it's become more common and popular. You'll have generally better community support with Postgres and more features, but might get better latency with SQLite, and it would be simpler to administer.
-   - Will SQLite scale? That was my big concern. It seems that the reason is that programs used to not handle concurrent writes, but that's not the case for apps today apparently.
+   - Will SQLite scale? That was my big concern using it here. It seems that the reason is that programs used to not handle concurrent writes, but that's not the case for apps today apparently.
       - See this article for more info: https://blog.wesleyac.com/posts/consider-sqlite
       - More technical on the WAL mode for journalling here, which we are using: https://fly.io/blog/sqlite-internals-wal/
 3. You probably don't need an ORM
@@ -70,6 +70,9 @@ Mental model for picking this or any stack:
    - It forces you to handle all possible errors and makes them more obvious.
    - In JS, this often means wrapping the function in try/catch and returning the error in a helper as a result type.
    - Then, in the imperitive shell of the function, you can just do a simple if (result[1]) { return result[1] } to return the error.
+12. Run a server
+   - It can be a managed server like Fly.io, but having a server is just way simpler and more flexible than using serverless.
+   - All serverless providers have weird undocumented requirements or limititations which will waste tons of your time.
 
 
 ### Things I didn't look into but might be useful:
