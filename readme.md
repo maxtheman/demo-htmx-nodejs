@@ -83,6 +83,8 @@ Mental model for picking this or any stack:
 - Testing framework? Didn't bother setting up tests for this. Bun comes with bun:test, probably use that.
 - Typescript
 - Caching implementation -- didn't get to this yet
+- Haven't put much time into compression or minification of assets, just implemented the basics. Could use something like brotli or the recommended (CSSNano)[https://cssnano.github.io/cssnano/docs/introduction/]
+- Advanced Hono features. Comes pre-built with (RPC)[https://hono.dev/docs/guides/rpc] and (JSX)[https://hono.dev/docs/guides/jsx]
 
 ## Going faster
 
@@ -267,11 +269,14 @@ bun run db:migrate
 
 They should be automatically applied upon deployment.
 
+### Organization
+- /routes contains the routes for the application. As the application grows, each feature can be broken out into its own file.
+- /views contains the html templates. These are rendered with Eta on the server. HTMX is used to update the DOM, check the hx-* attributes. In the future, it might be better to have sub-folders for each feature, /todo, /list, etc.
+- queries.js contains the queries for the database. Queries is the main object here, and acts as your 'orm' to extend
+- index.js is the entrypoint for the application.
+
 Other stuff:
-- index.js is the entrypoint for the application. It's a standard Express.js app. Edit business logic there.
 - src/instrumentation.js is used to instrument the app with opentelemetry. You probably don't need to change this.
-- src/queries.js is a convenience wrapper around the database for interacting with the database.
-- views/* contains the html templates. These are rendered with EJS on the server. HTMX is used to update the DOM, check the hx-* attributes.
 - public/* contains the static assets.
 
 ## Devops

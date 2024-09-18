@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { Eta } from "eta";
-import TodoQueries from "./queries";
+import Queries from "./queries";
 import { requiresAuth } from "./middleware/auth";
 import { findDirectories, handleAsyncError, applyMiddleware } from "./utils";
 import { logger } from "./instrumentation";
@@ -27,7 +27,7 @@ app.get("/", requiresAuth, async (c) => {
 
 app.get("/todos", requiresAuth, async (c) => {
   const [todos, getErr] = await handleAsyncError(() =>
-    TodoQueries.getAllTodos(c.get("user")?.sub)
+    Queries.todo.getAllTodos(c.get("user")?.sub)
   );
   if (getErr) {
     return c.text("Error: " + getErr.message, 400);
@@ -39,7 +39,7 @@ app.get("/todos", requiresAuth, async (c) => {
 app.post("/todos", requiresAuth, async (c) => {
   const { listId, title, description, dueDate } = c.req.body;
   const [result, createErr] = await handleAsyncError(() =>
-    TodoQueries.createTodo(
+    Queries.todo.createTodo(
       listId,
       title,
       description,
@@ -51,7 +51,7 @@ app.post("/todos", requiresAuth, async (c) => {
     return c.text("Error: " + createErr.message, 400);
   }
   const [newTodo, getErr] = await handleAsyncError(() =>
-    TodoQueries.getTodoById(result.id, c.get("user")?.sub)
+    Queries.todo.getTodoById(result.id, c.get("user")?.sub)
   );
   if (getErr) {
     return c.text("Error: " + getErr.message, 400);
@@ -63,13 +63,13 @@ app.post("/todos", requiresAuth, async (c) => {
 app.put("/todos/:id", requiresAuth, async (c) => {
   const { id } = c.req.param();
   const [todo, getErr] = await handleAsyncError(() =>
-    TodoQueries.getTodoById(id, c.get("user")?.sub)
+    Queries.todo.getTodoById(id, c.get("user")?.sub)
   );
   if (getErr) {
     return c.text("Error: " + getErr.message, 400);
   }
   const [updatedTodo, updateErr] = await handleAsyncError(() =>
-    TodoQueries.updateTodo(
+    Queries.todo.updateTodo(
       id,
       todo.title,
       todo.description,
@@ -82,7 +82,7 @@ app.put("/todos/:id", requiresAuth, async (c) => {
     return c.text("Error: " + updateErr.message, 400);
   }
   const [refreshedTodo, refreshErr] = await handleAsyncError(() =>
-    TodoQueries.getTodoById(id, c.get("user")?.sub)
+    Queries.todo.getTodoById(id, c.get("user")?.sub)
   );
   if (refreshErr) {
     return c.text("Error: " + refreshErr.message, 400);
@@ -94,7 +94,7 @@ app.put("/todos/:id", requiresAuth, async (c) => {
 app.delete("/todos/:id", requiresAuth, async (c) => {
   const { id } = c.req.param();
   const [_, deleteErr] = await handleAsyncError(() =>
-    TodoQueries.deleteTodo(id, c.get("user")?.sub)
+    Queries.todo.deleteTodo(id, c.get("user")?.sub)
   );
   if (deleteErr) {
     return c.text("Error: " + deleteErr.message, 400);

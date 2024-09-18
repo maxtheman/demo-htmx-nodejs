@@ -119,4 +119,9 @@ const TodoQueries = {
   },
 };
 
-export default TodoQueries;
+const Queries = {
+  todo: TodoQueries,
+  // add other queries here
+};
+
+export default Queries;
